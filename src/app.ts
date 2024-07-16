@@ -1,6 +1,8 @@
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 import express, { NextFunction, Request, Response} from "express";
 import createHttpError from "http-errors";
 import globalErrorHandler from "./middlewares/globleErrorHandler";
+import userRouter from "./user/userRouter";
 
 const app = express();
 
@@ -16,6 +18,8 @@ app.get("/", (req, res, next) => {
   res.json({ message: "Welcome to elib apis." });
 });
 
+//Router
+app.use("/api/users/", userRouter);
 
 //Global error handler
 app.use(globalErrorHandler)

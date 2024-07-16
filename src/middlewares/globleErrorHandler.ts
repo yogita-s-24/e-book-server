@@ -13,6 +13,7 @@ const globalErrorHandler = (
 
     res: Response, 
 
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     next: NextFunction
 
     )=>{
