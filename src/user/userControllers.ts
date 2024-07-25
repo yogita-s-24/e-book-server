@@ -1,37 +1,62 @@
 import { NextFunction, Request, Response } from "express";
 import createHttpError from "http-errors";
 import userModel from "./userModel";
-
-import bcrypt from 'bcrypt';
+import bcrypt from "bcrypt";
+import { sign } from "jsonwebtoken";
+import { config } from "../config/config";
 
 const createUser = async (req: Request, res: Response, next: NextFunction) => {
+  console.log(req.body);
   const { name, email, password } = req.body;
 
-  //Validation
+  // Validation
   if (!name || !email || !password) {
     const error = createHttpError(400, "All fields are required.");
     return next(error);
   }
 
-  //database call
+  try {
+    // Check if user exists
+    const user = await userModel.findOne({ email });
+    if (user) {
+      const error = createHttpError(
+        400,
+        "User already exists with this email."
+      );
+      return next(error);
+    }
 
-  const user = await userModel.findOne({ email });
+    // Password hash
+    const hashPassword = await bcrypt.hash(password, 10);
 
-  if (user) {
-    const error = createHttpError(400, "User already exist with this email.");
-    return next(error);
+    // Create new user
+    const newUser = await userModel.create({
+      name,
+      email,
+      password: hashPassword,
+    });
+
+    // Token generation - Jwt
+    const token = sign(
+      { sub: newUser._id.toString() }, // Ensure _id is a string
+      config.jwtSecret as string,
+      {
+        expiresIn : "7d" ,
+        algorithm : "HS256"
+      }
+
+    );
+
+    // Response
+    res
+      .status(201)
+      .json({ accessToken: token, message: "User Created Successfully" });
+  } catch (error) {
+    console.error(error);
+    next(
+      createHttpError(500, "Server error occurred while creating the user.")
+    );
   }
-
-  //password hash
-
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const hashPassword = await bcrypt.hash(password, 10);
-
-  //Process
-  //Response
-  res.json({
-    message: "User created.",
-  });
 };
 
 export { createUser };
