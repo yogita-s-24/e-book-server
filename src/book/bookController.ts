@@ -6,8 +6,12 @@ import path from "node:path";
 
 import createHttpError from "http-errors";
 
+import bookModel from "./bookModel";
+
+import fs from "node:fs";
+
 const createBook = async (req: Request, res: Response, next: NextFunction) => {
-  //   const {} = req.body;
+  const { title, genre } = req.body;
 
   // console.log("files", req.files);
 
@@ -61,6 +65,32 @@ const createBook = async (req: Request, res: Response, next: NextFunction) => {
 
       console.log("bookFileUploadResult" + bookFileUploadResult);
       console.log("uploadResult", uploadResult);
+
+      const newBook = await bookModel.create({
+        title,
+        genre,
+        author: "66a1fe11e9c6ef86678d6e72",
+        coverImage: uploadResult.secure_url,
+        file: bookFileUploadResult.secure_url,
+      });
+
+      //delete temp file
+      try {
+        await fs.promises.unlink(filePath);
+        await fs.promises.unlink(bookFilePath);
+
+        res.status(201).json({
+          message: "Book created successfully",
+          data: newBook._id,
+        });
+      } catch (error) {
+        return next(
+          createHttpError(
+            500,
+            "An error occurred while processing your request."
+          )
+        );
+      }
     } catch (error) {
       console.log(error);
       return next(createHttpError(500, "Error while uploading the file."));
