@@ -10,6 +10,8 @@ import bookModel from "./bookModel";
 
 import fs from "node:fs";
 
+import { AuthRequest } from "../middlewares/authenticate";
+
 const createBook = async (req: Request, res: Response, next: NextFunction) => {
   const { title, genre } = req.body;
 
@@ -21,14 +23,14 @@ const createBook = async (req: Request, res: Response, next: NextFunction) => {
 
   const fileName = files.coverImage[0].filename;
 
-  const filePath = path.resolve(
+  const coverImageFilePath = path.resolve(
     __dirname,
     "../../public/data/uploads",
     fileName
   );
 
   try {
-    const uploadResult = await cloudinary.uploader.upload(filePath, {
+    const uploadResult = await cloudinary.uploader.upload(coverImageFilePath, {
       filename_override: fileName,
 
       folder: "book-covers",
@@ -36,20 +38,20 @@ const createBook = async (req: Request, res: Response, next: NextFunction) => {
       format: coverImageMimeType,
     });
 
-    console.log({
-      filename_override: fileName,
+    // console.log({
+    //   filename_override: fileName,
 
-      folder: "book-covers",
+    //   folder: "book-covers",
 
-      format: coverImageMimeType,
-    });
+    //   format: coverImageMimeType,
+    // });
 
     const bookFileName = files.file[0].filename;
 
     const bookFilePath = path.resolve(
       __dirname,
       "../../public/data/uploads",
-      fileName
+      bookFileName
     );
 
     try {
@@ -63,36 +65,26 @@ const createBook = async (req: Request, res: Response, next: NextFunction) => {
         }
       );
 
-      console.log("bookFileUploadResult" + bookFileUploadResult);
-      console.log("uploadResult", uploadResult);
-
-      // console.log("userId", req.userId);
+      const _req = req as AuthRequest;
 
       const newBook = await bookModel.create({
         title,
         genre,
-        author: "66a1fe11e9c6ef86678d6e72",
+        author: _req.userId,
         coverImage: uploadResult.secure_url,
         file: bookFileUploadResult.secure_url,
       });
 
+      console.log(newBook);
+      
       //delete temp file
-      try {
-        await fs.promises.unlink(filePath);
-        await fs.promises.unlink(bookFilePath);
+      await fs.promises.unlink(coverImageFilePath);
+      await fs.promises.unlink(bookFilePath);
 
-        res.status(201).json({
-          message: "Book created successfully",
-          data: newBook._id,
-        });
-      } catch (error) {
-        return next(
-          createHttpError(
-            500,
-            "An error occurred while processing your request."
-          )
-        );
-      }
+      res.status(201).json({
+        message: "Book created successfully",
+        data: newBook._id,
+      });
     } catch (error) {
       console.log(error);
       return next(createHttpError(500, "Error while uploading the file."));
