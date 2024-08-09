@@ -63,7 +63,6 @@ const createUser = async (req: Request, res: Response, next: NextFunction) => {
   }
 };
 
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
 const loginUser = async (req: Request, res: Response, next: NextFunction) => {
   const { email, password } = req.body;
 
