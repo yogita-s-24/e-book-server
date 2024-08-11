@@ -126,13 +126,15 @@ const updateBook = async (req: Request, res: Response, next: NextFunction) => {
       "../../public/data/uploads/" + filename
     );
     completeCoverImage = filename;
+
     const uploadResult = await cloudinary.uploader.upload(filePath, {
       filename_override: completeCoverImage,
-      folder: "book-covers",
+      folder: "book-pdfs",
       format: converMimeType,
     });
 
     completeCoverImage = uploadResult.secure_url;
+
     await fs.promises.unlink(filePath);
   }
 
@@ -204,4 +206,46 @@ const getSingleBook = async (
   }
 };
 
-export { createBook, updateBook, listBooks, getSingleBook };
+const deleteBook = async (req: Request, res: Response, next: NextFunction) => {
+  const bookId = req.params.bookId;
+
+  const book = await bookModel.findOne({ _id: bookId });
+
+  if (!book) {
+    return next(createHttpError(404, "Book not found."));
+  }
+
+  //check access
+
+  const _req = req as AuthRequest;
+
+  if (book.author.toString() !== _req.userId) {
+    return next(createHttpError(403, "You cannot update other book."));
+  }
+
+  //book-covers/bq7wk4bkqyrtr0edcqyg
+  //https://res.cloudinary.com/duw8vkbru/image/upload/v1722934925/book-covers/ojducuqhkfmkzd51o97t.png
+
+  const coverFileSplits = book.coverImage.split("/");
+
+  const coverImagePublicId =
+    coverFileSplits.at(-2) + "/" + coverFileSplits.at(-1)?.split(".").at(-2);
+
+  const bookFileSplits = book.file.split("/");
+
+  const bookImagePublicId = bookFileSplits.at(-2) + "/" + bookFileSplits.at(-1);
+
+  console.log("bookImagePublicId", bookImagePublicId);
+
+  await cloudinary.uploader.destroy(coverImagePublicId);
+
+  await cloudinary.uploader.destroy(bookImagePublicId, {
+    resource_type: "raw",
+  });
+
+  await bookModel.deleteOne({ _id: bookId });
+
+  return res.sendStatus(204);
+};
+
+export { createBook, updateBook, listBooks, getSingleBook, deleteBook };
