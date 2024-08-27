@@ -17,11 +17,26 @@ const createBook = async (req: Request, res: Response, next: NextFunction) => {
 
   // console.log("files", req.files);
 
-  const files = req.files as { [filename: string]: Express.Multer.File[] };
+  const files = req?.files as { [filename: string]: Express.Multer.File[] };
 
-  const coverImageMimeType = files.coverImage[0].mimetype.split("/").at(-1);
+  if (!files || !files.coverImage || !files.coverImage[0]) {
+    return next(createHttpError(400, "Missing cover image"));
+  } 
 
-  const fileName = files.coverImage[0].filename;
+  if (!files || !files.file || !files.file[0]) {
+    return next(createHttpError(400, "Missing book PDF"));
+  }
+
+  const coverImageMimeType = files?.coverImage[0]?.mimetype?.split("/")?.at(-1);
+
+  if(!coverImageMimeType){
+    const error = "Please select cover image"
+    return next(error);
+  }
+
+
+  
+  const fileName = files?.coverImage[0]?.filename;
 
   const coverImageFilePath = path.resolve(
     __dirname,
@@ -178,7 +193,7 @@ const updateBook = async (req: Request, res: Response, next: NextFunction) => {
 
 const listBooks = async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const book = await bookModel.find();
+    const book = await bookModel.find().populate("author", "name");
 
     res.json(book);
   } catch (error) {
@@ -194,7 +209,7 @@ const getSingleBook = async (
   const bookId = req.params.bookId;
 
   try {
-    const book = await bookModel.findOne({ _id: bookId });
+    const book = await bookModel.findOne({ _id: bookId }).populate("author", "name");
 
     if (!book) {
       return next(createHttpError(500, "Book not found."));
