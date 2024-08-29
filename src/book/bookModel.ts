@@ -9,9 +9,15 @@ const bookSchema = new mongoose.Schema<Book>(
     },
     author: {
       type: mongoose.Schema.Types.ObjectId,
-      ref : "User",
+      ref: "User",
       required: true,
     },
+
+    description: {
+      type: String,
+      required: true,
+    },
+
     coverImage: {
       type: String,
       required: true,

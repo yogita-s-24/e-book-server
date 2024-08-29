@@ -13,9 +13,21 @@ import fs from "node:fs";
 import { AuthRequest } from "../middlewares/authenticate";
 
 const createBook = async (req: Request, res: Response, next: NextFunction) => {
-  const { title, genre } = req.body;
+  const { title, genre, description } = req.body;
 
   // console.log("files", req.files);
+
+   // Validate title and genre 
+   if (!title || typeof title !== "string") {
+    return next(createHttpError(400, "Invalid or missing title"));
+  }
+
+  if (!genre || typeof genre !== "string") {
+    return next(createHttpError(400, "Invalid or missing genre"));
+  }
+  if (!description || typeof description !== "string") {
+    return next(createHttpError(400, "Invalid or missing description"));
+  }
 
   const files = req?.files as { [filename: string]: Express.Multer.File[] };
 
@@ -86,6 +98,7 @@ const createBook = async (req: Request, res: Response, next: NextFunction) => {
         title,
         genre,
         author: _req.userId,
+        description,
         coverImage: uploadResult.secure_url,
         file: bookFileUploadResult.secure_url,
       });
@@ -113,7 +126,8 @@ const createBook = async (req: Request, res: Response, next: NextFunction) => {
 };
 
 const updateBook = async (req: Request, res: Response, next: NextFunction) => {
-  const { title, genre } = req.body;
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const { title, genre, description } = req.body;
   const bookId = req.params.bookId;
 
   const book = await bookModel.findOne({ _id: bookId });
